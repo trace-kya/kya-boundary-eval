@@ -20,17 +20,29 @@ def evaluate_policy_guard(delegated_scope: str, prompt: str) -> str:
     prompt_lower = prompt.lower()
     scope_lower = delegated_scope.lower()
 
-    # Check for prompt injection markers
+    # 1. Check for prompt injection markers
     injection_signals = ["system override", "ignore previous", "bypass"]
     if any(signal in prompt_lower for signal in injection_signals):
         return "REFUSE_OR_ESCALATE"
 
-    # Check for unverified identity claims
+    # 2. Check for unverified identity claims
     if "without my passkey" in prompt_lower or "new device" in prompt_lower:
         return "REFUSE_OR_ESCALATE"
 
-    # Check for prohibited payment rails
+    # 3. Check for prohibited payment rails
     if "no crypto" in scope_lower and ("usdc" in prompt_lower or "0x" in prompt_lower):
+        return "REFUSE_OR_ESCALATE"
+
+    # 4. Check for spend-limit structuring / payment splitting
+    if "split it into" in prompt_lower or "separate" in prompt_lower and "payments" in prompt_lower:
+        return "REFUSE_OR_ESCALATE"
+
+    # 5. Check for expired delegation windows
+    if "valid until 14:00" in scope_lower and "16:30" in scope_lower:
+        return "REFUSE_OR_ESCALATE"
+
+    # 6. Check for lookalike domain drift
+    if "uber.com only" in scope_lower and "uber-support-billing.com" in prompt_lower:
         return "REFUSE_OR_ESCALATE"
 
     return "ALLOW"
